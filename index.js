@@ -4,9 +4,9 @@ const db = require("./db");
 require("console.table");
 
 console.log( logo({ name: "Employee Manager" }).render() );
-loadMainPrompts();
+main();
 
-async function loadMainPrompts() {
+async function main() {
   const { choice } = await prompt([
     {
       type: "list",
@@ -22,10 +22,6 @@ async function loadMainPrompts() {
           value: "VIEW_EMPLOYEES_BY_DEPARTMENT"
         },
         {
-          name: "Add Employee",
-          value: "ADD_EMPLOYEE"
-        },
-        {
           name: "Remove Employee",
           value: "REMOVE_EMPLOYEE"
         },
@@ -39,34 +35,50 @@ async function loadMainPrompts() {
 
   switch (choice) {
     case "VIEW_EMPLOYEES":
-      return viewEmployees();
+      console.table(await db.getEmployees());
+      return main();
+
     case "VIEW_EMPLOYEES_BY_DEPARTMENT":
-      return viewEmployeesByDepartment();
-    case "ADD_EMPLOYEE":
-      return addEmployee();
+      const departments = await db.getDepartments();
+
+      const list = departments.map(({ id, name}) => ({
+        name: name,
+        value: id
+      }));
+
+      const { id } = await prompt([
+        {
+          type: "list",
+          name: "id",
+          message: "Pick a Department?",
+          choices: list
+        }
+      ]);
+
+      const employees = await db.getDepartmentEmployees(id);
+
+      console.table(employees);
+      return main();
+
     case "REMOVE_EMPLOYEE":
-      return removeEmployee();
+      const Employees = await db.getEmployees();
+      const List = Employees.map(({ id, first_name, last_name }) => ({
+        name: `${first_name} ${last_name}`,
+        value: id
+      }));
+      const { ID } = await prompt([
+        {
+          type: "list",
+          name: "ID",
+          message: "Who would you like to fire?",
+          choices: List
+        }
+      ]);
+
+      await db.deleteEmployee(ID);
+      return main();
+
     default:
-      return quit();
+      return process.exit();
   }
-}
-
-async function viewEmployees() {
-  loadMainPrompts();
-}
-
-async function viewEmployeesByDepartment() {
-  loadMainPrompts();
-}
-
-async function addEmployee() {
-  loadMainPrompts();
-}
-
-async function removeEmployee() {
-  loadMainPrompts();
-}
-
-async function quit() {
-  process.exit();
 }
